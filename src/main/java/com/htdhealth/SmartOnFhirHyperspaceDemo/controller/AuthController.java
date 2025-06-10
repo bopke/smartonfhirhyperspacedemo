@@ -40,11 +40,7 @@ public class AuthController {
         String state = UUID.randomUUID().toString();
         String scope = "launch launch/patient openid fhiruser profile patient/*.read";
 
-//        if (launch != null && !launch.isEmpty()) {
-//            scope = "launch launch:" + launch + " launch/patient openid fhiruser profile patient/*.read";
-//        }
-
-        String authUrl = authService.buildAuthorizationUrl(iss,state, scope);
+        String authUrl = authService.buildAuthorizationUrl(iss,state, scope, launch);
 
         log.info("Redirecting to authorization URL {}", authUrl);
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -197,7 +193,7 @@ public class AuthController {
         String state = UUID.randomUUID().toString();
         String scope = "launch/patient openid fhiruser profile patient/*.read";
 
-        String authUrl = authService.buildAuthorizationUrl(fhirBaseUrl,state, scope);
+        String authUrl = authService.buildAuthorizationUrl(fhirBaseUrl,state, scope, null);
 
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header("Location", authUrl)

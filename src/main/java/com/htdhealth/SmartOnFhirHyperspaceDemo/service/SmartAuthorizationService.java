@@ -32,7 +32,7 @@ public class SmartAuthorizationService {
     @Value("${epic.fhir-base-url}")
     private String fhirBaseUrl;
 
-    public String buildAuthorizationUrl(String url, String state, String scope) {
+    public String buildAuthorizationUrl(String url, String state, String scope, String launch) {
         log.info("Building authorization URL for state: {} and scope: {}", state, scope);
 
         try {
@@ -58,12 +58,16 @@ public class SmartAuthorizationService {
             String fullAuthUrl = authorizationUrl +
                     "?response_type=code" +
                     "&client_id=" + clientId +
-                    "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8) +
-                    "&scope=" + URLEncoder.encode(scope, StandardCharsets.UTF_8) +
+                    "&redirect_uri=" + redirectUri +
+                    "&scope=" + scope +
                     "&state=" + state +
-                    "&aud=" + URLEncoder.encode(url, StandardCharsets.UTF_8) +
+                    "&aud=" + url +
                     "&code_challenge=" + codeChallenge +
                     "&code_challenge_method=S256";
+
+            if (launch != null && !launch.isEmpty()) {
+                fullAuthUrl += "&launch=" + launch;
+            }
 
             log.info("Built full authorization URL");
             return fullAuthUrl;
