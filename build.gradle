@@ -1,0 +1,48 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.4.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.htdhealth'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'ca.uhn.hapi.fhir:hapi-fhir-client:6.8.0'
+	implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:6.8.0'
+	implementation 'ca.uhn.hapi.fhir:hapi-fhir-client-okhttp:6.8.0'
+
+	implementation 'org.springframework:spring-web'
+
+	// For JSON processing (if not already included)
+	implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+	// For HTTP client operations
+	implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
