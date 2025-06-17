@@ -1,27 +1,22 @@
 package com.htdhealth.SmartOnFhirHyperspaceDemo.service;
 
-import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.rest.client.api.IGenericClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.r4.model.CapabilityStatement;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.concurrent.ConcurrentHashMap;
-
+/**
+ * Service for handling SMART on FHIR authorization flows with PKCE.
+ * This service orchestrates the OAuth 2.0 authorization process
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class SmartAuthorizationService {
 
-    private final FhirContext fhirContext;
-    private final ConcurrentHashMap<String, String> codeVerifierStore = new ConcurrentHashMap<>();
+    private final FhirCapabilityService fhirCapabilityService;
+    private final PkceService pkceService;
+    private final AuthUrlBuilder authUrlBuilder;
 
     @Value("${epic.client-id}")
     private String clientId;
@@ -29,100 +24,49 @@ public class SmartAuthorizationService {
     @Value("${epic.redirect-uri}")
     private String redirectUri;
 
-    @Value("${epic.fhir-base-url}")
-    private String fhirBaseUrl;
-
+    /**
+     * Builds a complete OAuth 2.0 authorization URL for SMART on FHIR authentication.
+     *
+     * @param url    The base FHIR server URL to authenticate against
+     * @param state  A unique state parameter for CSRF protection and session tracking
+     * @param scope  The requested OAuth 2.0 scopes (e.g., "patient/*.read")
+     * @param launch Optional launch context parameter for EHR-launched apps
+     * @return Complete authorization URL ready for user redirection
+     * @throws RuntimeException if unable to build URL
+     */
     public String buildAuthorizationUrl(String url, String state, String scope, String launch) {
         log.info("Building authorization URL for state: {} and scope: {}", state, scope);
 
         try {
-            // Get the conformance statement to find authorization endpoints
-            IGenericClient client = fhirContext.newRestfulGenericClient(url);
+            String authEndpoint = fhirCapabilityService.getAuthorizationEndpoint(url);
+            log.info("Retrieved authorization endpoint: {}", authEndpoint);
 
-            CapabilityStatement conformance = client
-                    .capabilities()
-                    .ofType(CapabilityStatement.class)
-                    .execute();
+            String codeVerifier = pkceService.generateCodeVerifier();
+            String codeChallenge = pkceService.generateCodeChallenge(codeVerifier);
 
-            // Extract OAuth URLs from conformance statement
-            String authorizationUrl = extractAuthorizationUrl(conformance);
-            log.info("Extracted authorization URL: {}", authorizationUrl);
+            pkceService.storeCodeVerifier(state, codeVerifier);
 
-            // Build authorization URL with PKCE
-            String codeVerifier = generateCodeVerifier();
-            String codeChallenge = generateCodeChallenge(codeVerifier);
+            String authUrl = authUrlBuilder.buildAuthorizationUrl(
+                    authEndpoint, clientId, redirectUri, scope, state, url, codeChallenge, launch
+            );
 
-            // Store code verifier for later use
-            storeCodeVerifier(state, codeVerifier);
+            log.info("Successfully built authorization URL");
+            return authUrl;
 
-            String fullAuthUrl = authorizationUrl +
-                    "?response_type=code" +
-                    "&client_id=" + clientId +
-                    "&redirect_uri=" + redirectUri +
-                    "&scope=" + scope +
-                    "&state=" + state +
-                    "&aud=" + url +
-                    "&code_challenge=" + codeChallenge +
-                    "&code_challenge_method=S256";
-
-            if (launch != null && !launch.isEmpty()) {
-                fullAuthUrl += "&launch=" + launch;
-            }
-
-            log.info("Built full authorization URL");
-            return fullAuthUrl;
         } catch (Exception e) {
             log.error("Error building authorization URL", e);
             throw new RuntimeException("Failed to build authorization URL", e);
         }
     }
 
-    private String extractAuthorizationUrl(CapabilityStatement conformance) {
-        try {
-            return conformance.getRest().get(0)
-                    .getSecurity()
-                    .getExtensionByUrl("http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris")
-                    .getExtensionByUrl("authorize")
-                    .getValue()
-                    .primitiveValue();
-        } catch (Exception e) {
-            log.error("Error extracting authorization URL from conformance statement", e);
-            // Fallback for Epic
-            return "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/authorize";
-        }
-    }
-
-    private String generateCodeVerifier() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] codeVerifier = new byte[32];
-        secureRandom.nextBytes(codeVerifier);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
-    }
-
-    private String generateCodeChallenge(String codeVerifier) {
-        try {
-            byte[] bytes = codeVerifier.getBytes(StandardCharsets.UTF_8);
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(bytes, 0, bytes.length);
-            byte[] digest = messageDigest.digest();
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
-        } catch (Exception e) {
-            log.error("Error generating code challenge", e);
-            throw new RuntimeException("Failed to generate code challenge", e);
-        }
-    }
-
-    private void storeCodeVerifier(String state, String codeVerifier) {
-        codeVerifierStore.put(state, codeVerifier);
-        log.debug("Stored code verifier for state: {}", state);
-    }
-
+    /**
+     * Retrieves and removes a previously stored code verifier for the given state.
+     *
+     * @param state The state parameter used to identify the stored verifier
+     * @return The code verifier associated with the state
+     * @throws RuntimeException if no verifier is found for the given state
+     */
     public String retrieveCodeVerifier(String state) {
-        String codeVerifier = codeVerifierStore.remove(state);
-        if (codeVerifier == null) {
-            log.warn("No code verifier found for state: {}", state);
-            throw new RuntimeException("Code verifier not found for state: " + state);
-        }
-        return codeVerifier;
+        return pkceService.retrieveCodeVerifier(state);
     }
 }

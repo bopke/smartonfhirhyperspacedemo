@@ -15,6 +15,11 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
+/**
+ * Service responsible for handling OAuth 2.0 token exchange operations in SMART on FHIR applications.
+ * This service manages the second phase of the OAuth 2.0 authorization code flow, where the
+ * authorization code received from the authorization server is exchanged for an access token.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -31,6 +36,19 @@ public class TokenService {
     @Value("${epic.token-url:https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token}")
     private String tokenUrl;
 
+    /**
+     * Exchanges an OAuth 2.0 authorization code for an access token using the PKCE flow.
+     * This method completes the second phase of the SMART on FHIR authorization process by:
+     * 1. Retrieving the stored PKCE code verifier for the given state
+     * 2. Making a POST request to the token endpoint with the authorization code
+     * 3. Validating the PKCE code verifier against the original code challenge
+     * 4. Parsing the token response into a structured TokenResponse object
+     *
+     * @param authorizationCode The authorization code received from the authorization server callback
+     * @param state             The state parameter used to retrieve the corresponding PKCE code verifier
+     * @return TokenResponse containing access token, refresh token, patient context, and metadata
+     * @throws RuntimeException if code verifier retrieval fails, token exchange fails, or response parsing fails
+     */
     public TokenResponse exchangeCodeForToken(String authorizationCode, String state) {
         log.info("Exchanging authorization code for token, state: {}", state);
 

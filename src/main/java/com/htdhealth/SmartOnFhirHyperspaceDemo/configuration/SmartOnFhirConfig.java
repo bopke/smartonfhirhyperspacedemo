@@ -11,12 +11,6 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 public class SmartOnFhirConfig {
 
-    @Value("${epic.client-id}")
-    private String clientId;
-
-    @Value("${epic.redirect-uri}")
-    private String redirectUri;
-
     @Value("${epic.fhir-base-url}")
     private String fhirBaseUrl;
 
