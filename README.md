@@ -35,12 +35,45 @@ After authentication, the app retrieves patient data from the FHIR server and st
 - OpenSSL
 - keytool
 
+## Getting Started
+
+1. **Create app in EPIC vendor services**
+    - Log in to vendor services and head to My Apps Page
+    - Create new app, set it up as:
+      - App for Clinicians, Staff or Administrative Users
+      - As this is just a demo app, I haven't explored much about configurable apis and permissions. It looks like at least Patient related incoming APIs are required.
+      - Turn on OAuth 2.0
+      - Smart On Fhir version R4
+      - Smart Scope Version SMART V1
+      - Endpoint URI `https://localhost:8080/auth/callback`
+      - No dynamic clients
+      - No confidential client
+2. **Install Epic Hyperspace**
+    - For MacOS, you can find it in AppStore
+3. **Configure Hyperspace integration for EHR launches**
+    - After login into hyperspace, head to Integraton Setup and configure it properly
+    - URL `https://localhost:8080/auth/launch`
+    - Client ID your epic non-production client id from app configuration
+    - Any launch type should work, but tested the most with External Browser and Embedded ![Integration Setup in Hyperspace](docs-resources/integration-setup.png)
+    - Turn integration on, and head to Patient chart ![Patient Chart in Hyperspace](docs-resources/patient-chart.png)
+    - Pick any patient and click on Trigger OpenPatient ![Openpatient in Hyperspace](docs-resources/openpatient.png)
+    - If your browser opened and shown you information about the patient looking like below, everything went fine ![Patient Info in Demo App](docs-resources/patient-info.png)
+4. **Build and run**
+   ```bash
+   ./gradlew build
+   ./gradlew bootRun
+   ```
+
+5. **Access the application**
+    - Standalone launch: `https://localhost:8080/auth/standalone`
+    - EHR launch: Launch from Epic Hyperspace with your app configuration
+
 ## Configuration
 
 Set the following properties in `application.yml` to connect the app to Epic:
 
 ```properties
-epic.client-id=your-epic-client-id (nonproduction recommended)
+epic.client-id=your-epic-nonproduction-client-id (get from vendor services app)
 epic.redirect-uri=https://localhost:8080/auth/callback
 epic.fhir-base-url=https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4
 ```
@@ -59,23 +92,6 @@ server.ssl.key-store=classpath:keystore.p12
 server.ssl.key-store-password=store-password
 server.ssl.keyStoreType=PKCS12
 ```
-
-## Getting Started
-
-1. **Configure Hyperspace integration (for EHR launches)**
-    - URL `https://localhost:8080/auth/launch`
-    - Client ID your epic client id
-    - Any launch type should work, but tested the most with External Browser and Embedded
-
-2. **Build and run**
-   ```bash
-   ./gradlew build
-   ./gradlew bootRun
-   ```
-
-3. **Access the application**
-    - Standalone launch: `https://localhost:8080/auth/standalone`
-    - EHR launch: Launch from Epic Hyperspace with your app configuration
 
 ## OAuth Flow
 

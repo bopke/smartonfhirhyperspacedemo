@@ -16,9 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * TODO: real templates pls
- */
+
 @RestController
 @RequestMapping("/patients")
 @RequiredArgsConstructor
@@ -49,6 +47,7 @@ public class PatientsController {
                 </head>
                 <body>
                     <div class="container">
+                       <img src="https://mma.prnewswire.com/media/220268/availity_logo.jpg" width=200 />
                 """);
         for (Patient patient : patientsStore) {
             String patientName = fhirService.getPatientDisplayName(patient);
@@ -133,7 +132,7 @@ public class PatientsController {
                     </head>
                     <body>
                         <div class="container">
-                    
+                            <img src="https://mma.prnewswire.com/media/220268/availity_logo.jpg" width=200 />
                             <div class="patient-info">
                                 <h3>Patient Information</h3>
                                 <div class="field">
